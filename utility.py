@@ -43,8 +43,13 @@ def getHammerCountdown(dt:datetime64) -> str:
     unix_time = dt.astype('datetime64[s]').astype('int')
     return f'<t:{unix_time}:R>'
 
+def checkNotesFormat(notes:str) -> bool:
+    if len(notes) > 300:
+        return False
+    return True
+
 def checkTimerFormat(timer:str) -> bool:
-    r = r'\d\d:\d\d:\d\d'
+    r = r'\d?\d:\d\d:\d\d'
     if re.fullmatch(r, timer) is None:
         return False
     else:

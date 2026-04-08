@@ -5,8 +5,13 @@ from typing import Literal, NamedTuple, Callable
 import tkinter.font as tkfont
 from popups import show_message_box_info, show_message_box_warning, show_message_box_info_no_topmost, show_non_blocking_info, show_message_box_askyesno, show_message_box_askretrycancel, show_indeterminate_progress_bar, center_window_relative_to_parent, apply_theme_to_titlebar, show_message_box_info_checkbox, show_message_box_warning_checkbox, show_dropdown_popup
 from idlelib.tooltip import Hovertip
-from config import WINDOW_SIZE_TIMER, font_sizes, TOOLTIP_HOVER_DELAY, TOOLTIP_BACKGROUND, TOOLTIP_FOREGROUND, WINDOW_SIZE
+from config import font_sizes, TOOLTIP_HOVER_DELAY, TOOLTIP_BACKGROUND, TOOLTIP_FOREGROUND, WINDOW_SIZE, WINDOW_SIZE_TIMER, WINDOW_SIZE_NOTES
 from station_parser import getStockPrice
+
+default_jumps_headers = [
+    'Carrier Name', 'Carrier ID', 'Fuel', 'Current System', 'Body',
+    'Status', 'Destination System', 'Body', 'Timer', 'Plot Timer',
+]
 
 class MenuOption(NamedTuple):
         label: str
@@ -101,10 +106,8 @@ class CarrierView:
         self.sheet_jumps = Sheet(self.tab_jumps, name='sheet_jumps')
 
         # Set column headers
-        self.sheet_jumps.headers([
-            'Carrier Name', 'Carrier ID', 'Fuel', 'Current System', 'Body',
-            'Status', 'Destination System', 'Body', 'Timer', 'Plot Timer',
-        ])
+        self.sheet_jumps.headers(default_jumps_headers)
+        self.custom_jumps_headers = []
 
         self.configure_sheet(self.sheet_jumps)
         
@@ -134,6 +137,8 @@ class CarrierView:
         # Departure notice
         self.button_post_departure = ttk.Button(self.bottom_bar, text='Post Departure')
         self.button_post_departure.pack(side='left')
+        # FC Notes
+        self.button_edit_notes = ttk.Button(self.bottom_bar, text='Enter Notes')
 
         # Trade tab
         self.sheet_trade = Sheet(self.tab_trade, name='sheet_trade')
@@ -349,6 +354,13 @@ class CarrierView:
         self.root.option_add("*Listbox*Font", ("Calibri", size, "normal"))
         self.root.option_add("*Menu*Font",    ("Calibri", size, "normal"))
 
+    def reset_jumps_headers(self):
+        self.sheet_jumps.headers(default_jumps_headers + self.custom_jumps_headers)
+
+    def set_custom_jumps_headers(self, custom_jumps_headers: list[str]):
+        self.custom_jumps_headers = custom_jumps_headers
+        self.reset_jumps_headers()
+
     def setup_right_click_menu(self):
         if self.menu_options is None:
             return
@@ -524,6 +536,31 @@ class ManualTimerView:
         self.entry_timer = ttk.Entry(self.popup)
         self.entry_timer.focus()
         self.entry_timer.pack(side='top', pady=4, padx=8)
+        self.button_post = ttk.Button(self.popup, text='OK')
+        self.button_post.pack(side='bottom', ipadx=8, ipady=2, pady=4)
+        self.popup.bind('<Return>', lambda _: self.button_post.invoke())
+
+        self.popup.attributes('-topmost', True)
+        center_window_relative_to_parent(self.popup, root)
+        self.popup.focus_set()
+
+class EditNotesView:
+    def __init__(self, root, carrierID:str):
+        self.carrierID = carrierID
+        self.popup = tk.Toplevel(root)
+        self.popup.geometry(WINDOW_SIZE_NOTES) #fix
+        self.popup.transient(root)
+        apply_theme_to_titlebar(self.popup)
+        self.popup.title(f'Notes')
+        self.popup.focus_force()
+        self.popup.rowconfigure(1, pad=1, weight=1)
+        self.popup.columnconfigure(0, pad=1, weight=1)
+
+        self.label_notes_desp = ttk.Label(self.popup, text='Enter notes:')
+        self.label_notes_desp.pack(side='top', pady=4, padx=8)
+        self.entry_notes = ttk.Entry(self.popup, width=100)
+        self.entry_notes.focus()
+        self.entry_notes.pack(side='top', pady=4, padx=8)
         self.button_post = ttk.Button(self.popup, text='OK')
         self.button_post.pack(side='bottom', ipadx=8, ipady=2, pady=4)
         self.popup.bind('<Return>', lambda _: self.button_post.invoke())
