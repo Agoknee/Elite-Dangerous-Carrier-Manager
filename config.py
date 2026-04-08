@@ -3,6 +3,7 @@ from sys import platform
 
 WINDOW_SIZE = "1080x420"
 WINDOW_SIZE_TIMER = "300x120"
+WINDOW_SIZE_NOTES = "760x120"
 
 CD = timedelta(minutes=4, seconds=50)
 CD_cancel = timedelta(minutes=1)
