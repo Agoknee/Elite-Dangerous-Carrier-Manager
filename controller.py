@@ -62,6 +62,8 @@ class CarrierController:
         self.webhook_handler = None
         self.webhook_handler_carrier = {}
         self.auth_handler = AuthHandler()
+        self.first_click = False
+        self.first_click_time = None
         menu_options: dict[str, list[MenuOption]] = {
             'jumps': [
                 MenuOption('Copy name (ID)', self.menu_click_copy_name_callsign),
@@ -117,6 +119,7 @@ class CarrierController:
         self.view.button_report_timer_history.configure(command=self.button_click_report_timer_history)
         self.view.button_timer_contributions.configure(command=self.button_click_timer_contributions)
         self.view.button_delete_account.configure(command=self.button_click_delete_account)
+        self.view.sheet_jumps.extra_bindings('cell_select', self.cell_click)
 
         # initial load
         self.update_journals()
@@ -465,6 +468,27 @@ class CarrierController:
 
         future_skew.add_done_callback(handle_skew_result)
     
+    def cell_click(self, event):
+        click_time = round(time.time() * 1000)
+        if not self.first_click == (event['selected'].row, event['selected'].column):
+            self.first_click = (event['selected'].row, event['selected'].column)
+            self.first_click_time = click_time
+        else:
+            self.first_click = False
+
+            # Test if double-click
+            if (self.first_click_time and click_time - self.first_click_time > 300):
+                self.first_click_time = click_time
+                return
+
+            # Click "Get Hammer Time" button for 9th column (Timer)
+            if event['selected'].column == 8:
+                self.button_click_hammer()
+
+            # Click "Enter Plot Timer" button for 10th column (Plot Timer)
+            if event['selected'].column == 9:
+                self.button_click_manual_timer()
+
     def button_click_hammer(self):
         selected_row = self.get_selected_row()
         if selected_row is not None:
