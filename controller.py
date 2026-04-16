@@ -32,7 +32,7 @@ from numpy import datetime64
 from auth import AuthHandler
 from settings import Settings, SettingsValidationError
 from model import CarrierModel
-from view import CarrierView, TradePostView, ManualTimerView, MenuOption, TradeHistoryView
+from view import CarrierView, TradePostView, ManualTimerView, EditNotesView, MenuOption, TradeHistoryView
 from station_parser import EDSMError, getStations
 from utility import getHammerCountdown, checkTimerFormat, getTimerStatDescription, getCurrentVersion, getLatestVersion, getPrereleaseUpdateVersion, getResourcePath, isOnPrerelease, isUpdateAvailable, getSettingsPath, getSettingsDefaultPath, getSettingsDir, getAppDir, getCachePath, open_file, getInfoHash, getExpectedJumpTimer
 from decos import debounce
@@ -90,6 +90,9 @@ class CarrierController:
         self.view.button_post_departure.configure(command=self.button_click_post_departure)
         self.view.button_post_trade_trade.configure(command=self.button_click_post_trade_trade)
         self.view.button_trade_history.configure(command=self.button_click_trade_history)
+        if self.settings.get('advanced', 'show_fc_notes_on_jumps_tab'):
+            self.view.button_edit_notes.pack(side='left')
+            self.view.button_edit_notes.configure(command=self.button_click_edit_notes)
         self.view.checkbox_filter_ghost_buys_var.trace_add('write', lambda *args: self.settings.set_config('Trade', 'filter_ghost_buys', value=self.view.checkbox_filter_ghost_buys_var.get()))
         self.view.button_open_journal.configure(command=self.button_click_open_journal)
         self.view.button_open_journal_folder.configure(command=self.button_click_open_journal_folder)
@@ -261,7 +264,11 @@ class CarrierController:
             if self.settings.get('advanced', 'show_cmdr_name_on_jumps_tab'): custom_jumps_headers.append('CMDR Name')
             if self.settings.get('advanced', 'show_squad_name_on_jumps_tab'): custom_jumps_headers.append('Squadron')
             if self.settings.get('advanced', 'show_free_space_on_jumps_tab'): custom_jumps_headers.append('Free Space')
+            if self.settings.get('advanced', 'show_fc_notes_on_jumps_tab'): custom_jumps_headers.append('Notes')
             self.view.set_custom_jumps_headers(custom_jumps_headers)
+            self.view.button_edit_notes.pack_forget()
+            if self.settings.get('advanced', 'show_fc_notes_on_jumps_tab'):
+                self.view.button_edit_notes.pack(side='left')
             self.root.geometry(self.settings.get('UI', 'window_size'))
             self.view.checkbox_filter_ghost_buys_var.set(self.settings.get('Trade', 'filter_ghost_buys'))
             self.view.checkbox_show_active_journals_var.set(self.settings.get('UI', 'show_active_journals_tab'))
@@ -282,7 +289,8 @@ class CarrierController:
         self.model.set_custom_jumps_columns({
             'cmdrname': self.settings.get('advanced', 'show_cmdr_name_on_jumps_tab'),
             'squadname': self.settings.get('advanced', 'show_squad_name_on_jumps_tab'),
-            'freespace': self.settings.get('advanced', 'show_free_space_on_jumps_tab')
+            'freespace': self.settings.get('advanced', 'show_free_space_on_jumps_tab'),
+            'notes': self.settings.get('advanced', 'show_fc_notes_on_jumps_tab'),
         })
         self.model.set_squadron_abbv_mapping(self.settings.get('name_customization', 'squadron_abbv'))
         self.model.read_journals() # re-read journals to apply ignore list and custom order
@@ -477,17 +485,20 @@ class CarrierController:
             self.first_click = False
 
             # Test if double-click
-            if (self.first_click_time and click_time - self.first_click_time > 300):
+            if (click_time - self.first_click_time > 300):
                 self.first_click_time = click_time
                 return
 
-            # Click "Get Hammer Time" button for 9th column (Timer)
-            if event['selected'].column == 8:
+            clicked_column = self.view.sheet_jumps.get_header_data(event['selected'].column)
+            # Click "Get Hammer Time" button for Timer column
+            if clicked_column == 'Timer':
                 self.button_click_hammer()
-
-            # Click "Enter Plot Timer" button for 10th column (Plot Timer)
-            if event['selected'].column == 9:
+            # Click "Enter Plot Timer" button for Plot Timer column
+            elif clicked_column == 'Plot Timer':
                 self.button_click_manual_timer()
+            # Click "Enter Notes" button for Notes column
+            elif clicked_column == 'Notes':
+                self.button_click_edit_notes()
 
     def button_click_hammer(self):
         selected_row = self.get_selected_row()
@@ -899,6 +910,21 @@ class CarrierController:
                 open_file(path.dirname(journal_file))
         else:
             self.view.show_message_box_warning('Warning', 'Please select one row.')
+
+    def button_click_edit_notes(self):
+        print('notes!')
+        selected_row = self.get_selected_row()
+        if selected_row is not None:
+            if getattr(self, 'edit_notes_view', None) is not None:
+                self.edit_notes_view.popup.destroy()
+                self.edit_notes_view = None
+            carrierID = self.model.sorted_ids_display()[selected_row]
+            self.edit_notes_view = EditNotesView(self.view.root, carrierID=carrierID)
+            #reg = self.edit_notes_view.popup.register(checkTimerFormat)
+            #self.edit_notes_view.entry_timer.configure(validate='focusout', validatecommand=(reg, '%s'))
+            #self.edit_notes_view.button_post.configure(command=self.button_click_manual_timer_post)
+        else:
+            self.view.show_message_box_warning('Warning', 'Please select one carrier and one carrier only!')
 
     def check_manual_timer(self):
         now = datetime.now(timezone.utc)

@@ -115,6 +115,7 @@ custom_order = [] # Custom order of carriers. This is a list of carrier IDs (exa
 show_cmdr_name_on_jumps_tab = false # Show each carrier owner's CMDR name on Jumps tab
 show_squad_name_on_jumps_tab = false # Show each carrier owner's squadron name on Jumps tab
 show_free_space_on_jumps_tab = false # Show each carrier's free space on Jumps tab
+show_fc_notes_on_jumps_tab = false # Show editable notes for each carrier on Jumps tab
 
 # You can override notification settings for specific carriers using the carrier_notification_overrides setting below.
 # Each entry in the list should be a dictionary where the key is the carrier ID and the value is another dictionary with the settings to override.

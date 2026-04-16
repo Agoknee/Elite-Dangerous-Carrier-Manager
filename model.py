@@ -689,6 +689,7 @@ class CarrierModel:
         carrier_cmdr = self.generate_info_cmdr_name(carrierID)
         carrier_squad = self.generate_info_squadron_name(carrierID)
         carrier_free_space = self.generate_info_space_usage(carrierID)[5]
+        carrier_notes = ""
         location_system, location_body = getLocation(carrier['current_system'], carrier['current_body'], carrier['current_body_id'])
         fuel_level = carrier['Fuel']['FuelLevel']
         timer = self.manual_timers.get(carrierID, None)
@@ -738,6 +739,7 @@ class CarrierModel:
         if self.custom_jumps_columns['cmdrname']: returns.append(f"{carrier_cmdr}")
         if self.custom_jumps_columns['squadname']: returns.append(f"{carrier_squad}")
         if self.custom_jumps_columns['freespace']: returns.append(f"{carrier_free_space}")
+        if self.custom_jumps_columns['notes']: returns.append(f"{carrier_notes}")
 
         return tuple(returns)
     
